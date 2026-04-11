@@ -195,7 +195,7 @@ const UserTable: React.FC = () => {
     },
     {
       key: 'actions',
-      header: '',
+      header: 'Actions',
       sortable: false,
       width: '80px',
       render: (row) => (

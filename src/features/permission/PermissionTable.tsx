@@ -86,19 +86,25 @@ const PermissionTable: React.FC = () => {
     { key: 'description', header: 'Description', render: (row) => <span>{row.description}</span> },
     {
       key: 'actions',
-      header: '',
+      header: 'Actions',
       sortable: false,
       width: '80px',
       render: (row) => (
         <div className="flex items-center gap-2">
           <button
-            onClick={(e) => { e.stopPropagation(); openEdit(row); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              openEdit(row);
+            }}
             className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground"
           >
             <Edit2 className="w-4 h-4" />
           </button>
           <button
-            onClick={(e) => { e.stopPropagation(); openDelete(row); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              openDelete(row);
+            }}
             className="p-1.5 rounded-lg hover:bg-red-50 text-red-500"
           >
             <Trash2 className="w-4 h-4" />
