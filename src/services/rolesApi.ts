@@ -70,19 +70,19 @@ export const rolesApi = baseApi.injectEndpoints({
 
     // ✅ ASSIGN PERMISSIONS TO ROLE
     assignPermissionsToRole: builder.mutation<
-      unknown,
-      { roleId: number; permissionIds: number[] }
-    >({
-      query: ({ roleId, permissionIds }) => ({
-        url: `/api/roles/${roleId}/permissions`,
-        method: 'POST',
-        body: { permissionIds },
-      }),
-      invalidatesTags: (result, error, { roleId }) => [
-        'Roles',
-        { type: 'Roles', id: roleId },
-      ],
+    unknown,
+    { roleId: number; permissionIds: number[] }
+  >({
+    query: ({ roleId, permissionIds }) => ({
+      url: `/api/roles/${roleId}/permissions`,
+      method: 'POST',
+      body: permissionIds, // ✅ FIXED
     }),
+    invalidatesTags: (result, error, { roleId }) => [
+      'Roles',
+      { type: 'Roles', id: roleId },
+    ],
+  }),
 
     // ✅ REMOVE PERMISSION FROM ROLE
     removePermissionFromRole: builder.mutation<

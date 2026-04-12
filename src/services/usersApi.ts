@@ -68,16 +68,15 @@ export const usersApi = baseApi.injectEndpoints({
 
     // ASSIGN roles to user
     assignRolesToUser: builder.mutation<
-      unknown,
-      { userId: number | string; roleIds?: number[]; roleNames?: string[] }
-    >({
-      query: ({ userId, roleIds = [], roleNames = [] }) => ({
-        url: `api/users/${userId}/roles`,
-        method: 'POST',
-        body: roleIds.length > 0 ? { roleIds } : { roles: roleNames },
-      }),
-      invalidatesTags: ['Users'],
-    }),
+  unknown,
+  { userId: number | string; roleIds: number[] }
+>({
+  query: ({ userId, roleIds }) => ({
+    url: `api/users/${userId}/roles`,
+    method: 'POST',
+    body: roleIds, // ✅ MUST BE RAW ARRAY
+  }),
+}),
   }),
 });
 
