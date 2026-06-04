@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Input from '@/components/common/Input';
 import Button from '@/components/common/Button';
-import { Mail } from 'lucide-react';
+import { Mail, Building2, ArrowLeft, Send } from 'lucide-react';
 import { useAuth, useUI } from '@/app/store';
 import { useForgotPasswordMutation } from '@/services/authApi';
 
@@ -37,24 +37,71 @@ const ForgotPassword: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100">
-      <div className="bg-white p-8 rounded-xl shadow w-full max-w-md">
-        <h2 className="text-xl font-bold mb-6 text-center">Forgot Password</h2>
+    <div className="relative min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-blue-100 to-slate-100 px-4 py-16">
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <Input
-            label="Email"
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            icon={<Mail className="w-4 h-4" />}
-            required
-          />
+      {/* Soft glow background */}
+      <div className="absolute w-[500px] h-[500px] bg-blue-200/30 blur-3xl rounded-full -z-10"></div>
 
-          <Button type="submit" fullWidth loading={isLoading}>
-            Send OTP
-          </Button>
-        </form>
+      <div className="w-full max-w-md">
+        <div className="bg-slate-50 border border-slate-200 shadow-xl shadow-blue-200/40 rounded-2xl p-8 sm:p-10 space-y-8">
+
+          {/* Logo + System */}
+          <div className="flex flex-col items-center text-center space-y-3">
+            <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center shadow-md">
+              <Building2 className="w-8 h-8 text-primary-foreground" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-[0.25em]">
+                HRMS PRO
+              </p>
+              <p className="text-sm text-slate-600">
+                Human Resource Management System
+              </p>
+            </div>
+          </div>
+
+          {/* Heading */}
+          <div className="text-center space-y-2">
+            <h2 className="text-2xl font-bold text-slate-900">Forgot your password?</h2>
+            <p className="text-sm text-slate-500">
+              Enter your work email and we'll send you a one-time code to reset your password.
+            </p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <Input
+              label="Work email"
+              type="email"
+              placeholder="you@company.com"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              icon={<Mail className="w-4 h-4" />}
+              required
+            />
+
+            <Button type="submit" fullWidth loading={isLoading} iconRight={<Send className="w-4 h-4" />}>
+              Send OTP
+            </Button>
+          </form>
+
+          {/* Back to login */}
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => dispatch({ type: 'UI_SET_CURRENT_PAGE', payload: 'login' })}
+              className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary transition-colors font-medium"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Back to sign in
+            </button>
+          </div>
+
+          {/* Footer */}
+          <p className="text-center text-xs text-slate-500">
+            © 2026 St John's University - Tanzania. All rights reserved.
+          </p>
+        </div>
       </div>
     </div>
   );

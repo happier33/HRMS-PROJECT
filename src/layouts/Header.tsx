@@ -1,15 +1,27 @@
 import React, { useState } from 'react';
 import { useAuth, useUI } from '@/app/store';
 import { MobileMenuButton } from './Sidebar';
+import { useLogoutMutation } from '@/services/authApi';
 import {
   Search, Bell, ChevronDown, Settings, LogOut, UserCircle, Menu,
 } from 'lucide-react';
 
 const Header: React.FC = () => {
-  const { auth } = useAuth();
+  const { auth, dispatch } = useAuth();
   const { ui, setCurrentPage } = useUI();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [logoutMutation] = useLogoutMutation();
+
+  const handleSignOut = async () => {
+    setShowUserMenu(false);
+    try {
+      await logoutMutation().unwrap();
+    } catch {
+      // proceed with local logout even if server call fails
+    }
+    dispatch({ type: 'AUTH_LOGOUT' });
+  };
 
   const notifications = [
     { id: 1, text: 'New leave request from Alice Johnson', time: '5 min ago', unread: true },
@@ -136,13 +148,7 @@ const Header: React.FC = () => {
                 </div>
                 <div className="border-t border-border py-1">
                   <button
-                    onClick={() => {
-                      setShowUserMenu(false);
-                      // Small delay for visual feedback
-                      setTimeout(() => {
-                        window.location.reload();
-                      }, 100);
-                    }}
+                    onClick={handleSignOut}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
                   >
                     <LogOut className="w-4 h-4" />

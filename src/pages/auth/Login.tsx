@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth, useUI } from '@/app/store';
 import Input from '@/components/common/Input';
 import Button from '@/components/common/Button';
-import { Lock, Mail, ArrowRight, Building2 } from 'lucide-react';
+import { Lock, Mail, ArrowRight, Building2, Eye, EyeOff } from 'lucide-react';
 import { useLoginMutation } from '@/services/authApi';
 
 const Login: React.FC = () => {
@@ -10,8 +10,8 @@ const Login: React.FC = () => {
   const { addToast } = useUI();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
-  // RTK Query login mutation
   const [login, { isLoading }] = useLoginMutation();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -25,10 +25,8 @@ const Login: React.FC = () => {
     dispatch({ type: 'AUTH_LOGIN_START' });
 
     try {
-      // RTK Query call
       const data = await login({ email, password }).unwrap();
 
-      // backend response: { token, username, email, roles }
       const token: string = data.token;
       const username: string = data.username;
       const responseEmail: string = data.email;
@@ -58,18 +56,15 @@ const Login: React.FC = () => {
                 : 'EMPLOYEE',
       } as const;
 
-      // Persist token and user
+      // Persist token and user to localStorage
       localStorage.setItem('hrms_token', token);
       localStorage.setItem('hrms_user', JSON.stringify(user));
 
-      dispatch({ type: 'AUTH_LOGIN_SUCCESS', payload: user });
+      dispatch({ type: 'AUTH_LOGIN_SUCCESS', payload: { user, accessToken: token } });
       dispatch({ type: 'UI_SET_CURRENT_PAGE', payload: 'dashboard' });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-      dispatch({
-        type: 'AUTH_LOGIN_FAILURE',
-        payload: errorMessage,
-      });
+      dispatch({ type: 'AUTH_LOGIN_FAILURE', payload: errorMessage });
     }
   };
 
@@ -117,15 +112,29 @@ const Login: React.FC = () => {
               required
             />
 
-            <Input
-              label="Password"
-              type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              icon={<Lock className="w-4 h-4" />}
-              required
-            />
+            <div className="relative">
+              <Input
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                icon={<Lock className="w-4 h-4" />}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                className="absolute right-3 top-[2.05rem] text-slate-400 hover:text-slate-600 transition-colors"
+                tabIndex={-1}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword
+                  ? <EyeOff className="w-4 h-4" />
+                  : <Eye className="w-4 h-4" />
+                }
+              </button>
+            </div>
 
             {auth.error && (
               <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">

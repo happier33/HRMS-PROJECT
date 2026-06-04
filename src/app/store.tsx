@@ -3,7 +3,7 @@
  * Implements Redux-like state management using React Context + useReducer.
  * Combines auth, ui, and data slices into a single store.
  */
-import React, { createContext, useReducer, useContext, useCallback, useMemo } from 'react';
+import React, { createContext, useReducer, useContext, useCallback, useMemo, useEffect } from 'react';
 
 // ── Types ──
 export type UserRole = 'ADMIN' | 'HR' | 'DEMOADMIN' | 'EMPLOYEE';
@@ -20,6 +20,7 @@ export interface User {
 
 export interface AuthState {
   user: User | null;
+  accessToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
@@ -42,10 +43,11 @@ export interface AppState {
   ui: UIState;
 }
 
-// ── Initial State ──
-const initialState: AppState = {
+// ── Default initial state (unauthenticated) ──
+const defaultInitialState: AppState = {
   auth: {
     user: null,
+    accessToken: null,
     isAuthenticated: false,
     isLoading: false,
     error: null,
@@ -63,12 +65,40 @@ const initialState: AppState = {
   },
 };
 
+// ── Hydrated initial state — reads from localStorage synchronously before first render ──
+function getHydratedInitialState(): AppState {
+  try {
+    const token = localStorage.getItem('hrms_token');
+    const userJson = localStorage.getItem('hrms_user');
+    if (token && userJson) {
+      const user = JSON.parse(userJson) as User;
+      return {
+        ...defaultInitialState,
+        auth: {
+          ...defaultInitialState.auth,
+          user,
+          accessToken: token,
+          isAuthenticated: true,
+        },
+        ui: {
+          ...defaultInitialState.ui,
+          currentPage: 'dashboard',
+        },
+      };
+    }
+  } catch {
+    // Corrupt storage — fall through to default
+  }
+  return defaultInitialState;
+}
+
 // ── Action Types ──
 type Action =
   | { type: 'AUTH_LOGIN_START' }
-  | { type: 'AUTH_LOGIN_SUCCESS'; payload: User }
+  | { type: 'AUTH_LOGIN_SUCCESS'; payload: { user: User; accessToken: string } }
   | { type: 'AUTH_LOGIN_FAILURE'; payload: string }
   | { type: 'AUTH_LOGOUT' }
+  | { type: 'AUTH_TOKEN_REFRESHED'; payload: string }
   | { type: 'AUTH_FORGOT_PASSWORD_START' }
   | { type: 'AUTH_FORGOT_PASSWORD_SUCCESS' }
   | { type: 'AUTH_FORGOT_PASSWORD_FAILURE'; payload: string }
@@ -88,11 +118,27 @@ function appReducer(state: AppState, action: Action): AppState {
     case 'AUTH_LOGIN_START':
       return { ...state, auth: { ...state.auth, isLoading: true, error: null } };
     case 'AUTH_LOGIN_SUCCESS':
-      return { ...state, auth: { ...state.auth, user: action.payload, isAuthenticated: true, isLoading: false, error: null } };
+      return {
+        ...state,
+        auth: {
+          ...state.auth,
+          user: action.payload.user,
+          accessToken: action.payload.accessToken,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null,
+        },
+      };
     case 'AUTH_LOGIN_FAILURE':
       return { ...state, auth: { ...state.auth, isLoading: false, error: action.payload } };
     case 'AUTH_LOGOUT':
-      return { ...state, auth: { ...initialState.auth }, ui: { ...state.ui, currentPage: 'login' } };
+      return {
+        ...state,
+        auth: { ...defaultInitialState.auth },
+        ui: { ...state.ui, currentPage: 'login' },
+      };
+    case 'AUTH_TOKEN_REFRESHED':
+      return { ...state, auth: { ...state.auth, accessToken: action.payload } };
 
     // ── Forgot password ──
     case 'AUTH_FORGOT_PASSWORD_START':
@@ -145,8 +191,39 @@ const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 // ── Provider ──
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [state, dispatch] = useReducer(appReducer, initialState);
-  const value = useMemo(() => ({ state, dispatch }), [state]);
+  // Third-arg lazy initializer: runs once synchronously before the first render
+  const [state, rawDispatch] = useReducer(appReducer, undefined, getHydratedInitialState);
+
+  // Enhanced dispatch: clears localStorage on logout so tokens never survive past sign-out
+  const dispatch = useCallback((action: Action) => {
+    if (action.type === 'AUTH_LOGOUT') {
+      localStorage.removeItem('hrms_token');
+      localStorage.removeItem('hrms_user');
+    }
+    rawDispatch(action);
+  }, []);
+
+  // Bridge RTK Query layer → React Context via custom DOM events
+  useEffect(() => {
+    const handleForceLogout = () => {
+      dispatch({ type: 'AUTH_LOGOUT' });
+    };
+    const handleTokenRefreshed = (e: Event) => {
+      const detail = (e as CustomEvent<{ accessToken: string }>).detail;
+      if (detail?.accessToken) {
+        rawDispatch({ type: 'AUTH_TOKEN_REFRESHED', payload: detail.accessToken });
+      }
+    };
+
+    window.addEventListener('hrms:force-logout', handleForceLogout);
+    window.addEventListener('hrms:token-refreshed', handleTokenRefreshed);
+    return () => {
+      window.removeEventListener('hrms:force-logout', handleForceLogout);
+      window.removeEventListener('hrms:token-refreshed', handleTokenRefreshed);
+    };
+  }, [dispatch]);
+
+  const value = useMemo(() => ({ state, dispatch }), [state, dispatch]);
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 };
 
